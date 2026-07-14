@@ -90,8 +90,19 @@
     <details>
       <summary>Ajustes de impresi&oacute;n</summary>
       <div class="fila" style="margin-top:10px">
-        <div><label>Ancho (mm)</label><input type="number" id="ancho" value="30"></div>
-        <div><label>Alto (mm)</label><input type="number" id="alto" value="20"></div>
+        <div><label>Etiqueta ancho</label><input type="number" id="ancho" value="30" step="0.5"></div>
+        <div><label>Etiqueta alto</label><input type="number" id="alto" value="20" step="0.5"></div>
+      </div>
+      <div class="fila" style="margin-top:10px">
+        <div><label>Ancho total papel</label><input type="number" id="anchoTotal" value="62" step="0.5"></div>
+        <div><label>Separac. horiz.</label><input type="number" id="sepH" value="2" step="0.5"></div>
+      </div>
+      <div style="margin-top:10px">
+        <label>Etiquetas por fila</label>
+        <select id="columnas">
+          <option value="2" selected>2 &mdash; rollo doble</option>
+          <option value="1">1 &mdash; rollo simple</option>
+        </select>
       </div>
       <div class="fila" style="margin-top:10px">
         <div><label>Velocidad</label><input type="number" id="speed" value="3" min="1" max="8"></div>
@@ -321,49 +332,72 @@ function sinTildes(s) {
                   .replace(/"/g, "'").toUpperCase();
 }
 
-function construirTSPL(p) {
-  const ancho   = Number(document.getElementById('ancho').value);
-  const alto    = Number(document.getElementById('alto').value);
-  const gap     = Number(document.getElementById('gap').value);
-  const speed   = Number(document.getElementById('speed').value);
-  const density = Number(document.getElementById('density').value);
-  const narrow  = Number(document.getElementById('narrow').value);
-
-  const PPM = 8;                        // 203 dpi = 8 puntos/mm
-  const anchoPt = Math.round(ancho * PPM);
-  const altoPt  = Math.round(alto  * PPM);
-  const margen  = 20;                   // zona muda ~2,5mm
+function bloqueEtiqueta(p, xBase, altoPt) {
+  const narrow = Number(document.getElementById('narrow').value);
+  const margen = 18;                 // zona muda ~2,2mm
+  const x = xBase + margen;
 
   const nombre = sinTildes(p.n);
-  const MAX = 22;
+  const MAX = 20;
   let l1 = nombre, l2 = '';
   if (nombre.length > MAX) {
     let corte = nombre.lastIndexOf(' ', MAX);
-    if (corte < 10) corte = MAX;
+    if (corte < 8) corte = MAX;
     l1 = nombre.slice(0, corte);
     l2 = nombre.slice(corte + 1, corte + 1 + MAX);
   }
 
   const precio = '$' + Number(p.p).toLocaleString('es-CL');
-  const yBarra = l2 ? 36 : 26;
-  const altoBarra = Math.max(30, altoPt - yBarra - 34);
+  const yBarra = l2 ? 34 : 24;
+  const altoBarra = Math.max(28, altoPt - yBarra - 32);
 
-  return [
-    'SIZE ' + ancho + ' mm,' + alto + ' mm',
+  const l = [];
+  l.push('TEXT ' + x + ',5,"1",0,1,1,"' + l1 + '"');
+  if (l2) l.push('TEXT ' + x + ',19,"1",0,1,1,"' + l2 + '"');
+  l.push('BARCODE ' + x + ',' + yBarra + ',"128",' + altoBarra + ',0,0,' +
+         narrow + ',' + (narrow * 2) + ',"' + p.c + '"');
+  l.push('TEXT ' + x + ',' + (altoPt - 28) + ',"3",0,1,1,"' + precio + '"');
+  return l;
+}
+
+function construirTSPL(par) {
+  const ancho      = Number(document.getElementById('ancho').value);
+  const alto       = Number(document.getElementById('alto').value);
+  const anchoTotal = Number(document.getElementById('anchoTotal').value);
+  const sepH       = Number(document.getElementById('sepH').value);
+  const columnas   = Number(document.getElementById('columnas').value);
+  const gap        = Number(document.getElementById('gap').value);
+  const speed      = Number(document.getElementById('speed').value);
+  const density    = Number(document.getElementById('density').value);
+
+  const PPM = 8;                              // 203 dpi = 8 puntos/mm
+  const anchoMedio = (columnas === 2) ? anchoTotal : ancho;
+  const altoPt = Math.round(alto * PPM);
+
+  // Margen izquierdo del papel, repartiendo lo que sobra
+  const usado = columnas === 2 ? (ancho * 2 + sepH) : ancho;
+  const margenPapel = Math.max(0, Math.round(((anchoMedio - usado) / 2) * PPM));
+
+  const cmd = [
+    'SIZE ' + anchoMedio + ' mm,' + alto + ' mm',
     'GAP ' + gap + ' mm,0 mm',
     'DIRECTION 0',
     'REFERENCE 0,0',
     'DENSITY ' + density,
     'SPEED ' + speed,
-    'CLS',
-    'TEXT ' + margen + ',6,"1",0,1,1,"' + l1 + '"',
-    l2 ? 'TEXT ' + margen + ',20,"1",0,1,1,"' + l2 + '"' : null,
-    'BARCODE ' + margen + ',' + yBarra + ',"128",' + altoBarra + ',0,0,' +
-      narrow + ',' + (narrow * 2) + ',"' + p.c + '"',
-    'TEXT ' + margen + ',' + (altoPt - 30) + ',"3",0,1,1,"' + precio + '"',
-    'PRINT ' + p.cant,
-    ''
-  ].filter(x => x !== null).join('\r\n');
+    'CLS'
+  ];
+
+  cmd.push.apply(cmd, bloqueEtiqueta(par[0], margenPapel, altoPt));
+
+  if (columnas === 2 && par[1]) {
+    const x2 = margenPapel + Math.round((ancho + sepH) * PPM);
+    cmd.push.apply(cmd, bloqueEtiqueta(par[1], x2, altoPt));
+  }
+
+  cmd.push('PRINT 1');
+  cmd.push('');
+  return cmd.join('\r\n');
 }
 
 /* ---------- IMPRESION ---------- */
@@ -384,13 +418,23 @@ async function enviar(texto) {
 async function imprimirCola() {
   document.getElementById('btnImprimir').disabled = true;
   try {
-    let total = 0;
+    const columnas = Number(document.getElementById('columnas').value);
+
+    // Expandir la cola: cada etiqueta individual como un elemento
+    const planas = [];
     for (const p of cola) {
-      await enviar(construirTSPL(p));
-      total += p.cant;
-      await new Promise(r => setTimeout(r, 300));
+      for (let i = 0; i < p.cant; i++) planas.push(p);
     }
-    mostrar('msgImp', total + ' etiqueta(s) enviadas.', 'ok');
+
+    // Agrupar de a "columnas" por fila fisica del rollo
+    for (let i = 0; i < planas.length; i += columnas) {
+      const par = planas.slice(i, i + columnas);
+      await enviar(construirTSPL(par));
+      await new Promise(r => setTimeout(r, 350));
+    }
+
+    const filas = Math.ceil(planas.length / columnas);
+    mostrar('msgImp', planas.length + ' etiqueta(s) en ' + filas + ' fila(s).', 'ok');
   } catch (e) {
     mostrar('msgImp', 'Error: ' + e.message, 'err');
   }
