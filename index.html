@@ -97,12 +97,15 @@
         <div><label>Ancho total papel</label><input type="number" id="anchoTotal" value="62" step="0.5"></div>
         <div><label>Separac. horiz.</label><input type="number" id="sepH" value="2" step="0.5"></div>
       </div>
-      <div style="margin-top:10px">
-        <label>Etiquetas por fila</label>
-        <select id="columnas">
-          <option value="2" selected>2 &mdash; rollo doble</option>
-          <option value="1">1 &mdash; rollo simple</option>
-        </select>
+      <div class="fila" style="margin-top:10px">
+        <div>
+          <label>Etiquetas por fila</label>
+          <select id="columnas">
+            <option value="2" selected>2 &mdash; rollo doble</option>
+            <option value="1">1 &mdash; rollo simple</option>
+          </select>
+        </div>
+        <div><label>Letras por l&iacute;nea</label><input type="number" id="maxChars" value="12" min="8" max="30"></div>
       </div>
       <div class="fila" style="margin-top:10px">
         <div><label>Velocidad</label><input type="number" id="speed" value="3" min="1" max="8"></div>
@@ -112,7 +115,8 @@
         <div>
           <label>Grosor barra</label>
           <select id="narrow">
-            <option value="2" selected>2 &mdash; normal</option>
+            <option value="1" selected>1 &mdash; fino</option>
+            <option value="2">2 &mdash; normal</option>
             <option value="3">3 &mdash; grueso</option>
           </select>
         </div>
@@ -337,26 +341,27 @@ function bloqueEtiqueta(p, xBase, altoPt) {
   const margen = 18;                 // zona muda ~2,2mm
   const x = xBase + margen;
 
+  const MAX = Number(document.getElementById('maxChars').value);
+
   const nombre = sinTildes(p.n);
-  const MAX = 20;
   let l1 = nombre, l2 = '';
   if (nombre.length > MAX) {
     let corte = nombre.lastIndexOf(' ', MAX);
-    if (corte < 8) corte = MAX;
-    l1 = nombre.slice(0, corte);
-    l2 = nombre.slice(corte + 1, corte + 1 + MAX);
+    if (corte < 6) corte = MAX;
+    l1 = nombre.slice(0, corte).trim();
+    l2 = nombre.slice(corte).trim().slice(0, MAX);
   }
 
   const precio = '$' + Number(p.p).toLocaleString('es-CL');
-  const yBarra = l2 ? 34 : 24;
-  const altoBarra = Math.max(28, altoPt - yBarra - 32);
+  const yBarra = l2 ? 32 : 20;
+  const altoBarra = Math.max(30, altoPt - yBarra - 34);
 
   const l = [];
-  l.push('TEXT ' + x + ',5,"1",0,1,1,"' + l1 + '"');
-  if (l2) l.push('TEXT ' + x + ',19,"1",0,1,1,"' + l2 + '"');
+  l.push('TEXT ' + x + ',4,"1",0,1,1,"' + l1 + '"');
+  if (l2) l.push('TEXT ' + x + ',18,"1",0,1,1,"' + l2 + '"');
   l.push('BARCODE ' + x + ',' + yBarra + ',"128",' + altoBarra + ',0,0,' +
          narrow + ',' + (narrow * 2) + ',"' + p.c + '"');
-  l.push('TEXT ' + x + ',' + (altoPt - 28) + ',"3",0,1,1,"' + precio + '"');
+  l.push('TEXT ' + x + ',' + (altoPt - 30) + ',"2",0,1,1,"' + precio + '"');
   return l;
 }
 
