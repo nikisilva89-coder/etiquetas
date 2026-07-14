@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Etiquetas D23</title>
+<style>
+  :root{
+    --azul:#2B5CAD; --rojo:#E63329; --verde:#3D9B5D; --gris:#6B6B6B;
+    --borde:#dcdcdc; --fondo:#f4f5f7;
+  }
+  *{box-sizing:border-box}
+  body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;margin:0;padding:16px;
+       background:var(--fondo);color:#1c1c1c;-webkit-tap-highlight-color:transparent}
+  header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px}
+  h1{font-size:19px;margin:0;color:var(--azul);letter-spacing:-.2px}
+  #estado{font-size:12px;font-weight:600;color:var(--rojo)}
+  #estado.on{color:var(--verde)}
+  .card{background:#fff;border-radius:12px;padding:14px;margin-bottom:12px;
+        box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  input,select{width:100%;padding:12px;font-size:16px;border:1px solid var(--borde);
+        border-radius:8px;background:#fff}
+  button{border:0;border-radius:9px;color:#fff;font-weight:600;font-size:15px;
+        padding:13px;width:100%;cursor:pointer}
+  button:disabled{background:#c3c3c3!important}
+  .btn-azul{background:var(--azul)}
+  .btn-verde{background:var(--verde)}
+  .btn-gris{background:var(--gris)}
+  label{display:block;font-size:12px;font-weight:600;color:var(--gris);
+        margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+  .fila{display:flex;gap:10px}
+  .fila>div{flex:1}
+  .prod{padding:11px;border-bottom:1px solid #eee;cursor:pointer}
+  .prod:last-child{border-bottom:0}
+  .prod:active{background:#eef3fb}
+  .prod b{display:block;font-size:14px;font-weight:600;line-height:1.35}
+  .prod span{font-size:12px;color:var(--gris)}
+  .cola-item{display:flex;align-items:center;gap:8px;padding:9px 0;
+        border-bottom:1px solid #f0f0f0;font-size:13px}
+  .cola-item:last-child{border-bottom:0}
+  .cola-item .nom{flex:1;line-height:1.3}
+  .cola-item .cant{font-weight:700;color:var(--azul);min-width:30px;text-align:center}
+  .mini{background:none;border:0;color:var(--rojo);font-size:20px;width:28px;padding:0}
+  .vacio{color:#aaa;font-size:13px;text-align:center;padding:14px 0}
+  details{margin-top:4px}
+  summary{font-size:13px;color:var(--gris);cursor:pointer;padding:6px 0}
+  .msg{font-size:12px;padding:9px;border-radius:7px;margin-top:9px;display:none}
+  .msg.err{background:#fdecea;color:#a3241c;display:block}
+  .msg.ok{background:#e8f5ec;color:#256b3c;display:block}
+  .oculto{display:none!important}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Etiquetas D23</h1>
+  <span id="estado">Sin conectar</span>
+</header>
+
+<div id="login" class="card">
+  <label>Contrase&ntilde;a</label>
+  <input type="password" id="pass" autocomplete="off">
+  <button class="btn-azul" style="margin-top:10px" onclick="entrar()">Entrar</button>
+  <div id="msgLogin" class="msg"></div>
+</div>
+
+<div id="app" class="oculto">
+
+  <div class="card">
+    <button id="btnConectar" class="btn-azul" onclick="conectar()">Conectar impresora</button>
+    <div id="msgBt" class="msg"></div>
+  </div>
+
+  <div class="card">
+    <label>Buscar producto</label>
+    <input id="busqueda" placeholder="Nombre o c&oacute;digo..." autocomplete="off">
+    <div id="resultados"></div>
+  </div>
+
+  <div class="card">
+    <label>Cola de impresi&oacute;n</label>
+    <div id="cola"><div class="vacio">Sin etiquetas</div></div>
+    <button id="btnImprimir" class="btn-verde" style="margin-top:10px"
+            onclick="imprimirCola()" disabled>Imprimir</button>
+    <button class="btn-gris" style="margin-top:8px" onclick="vaciarCola()">Vaciar</button>
+    <div id="msgImp" class="msg"></div>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>Ajustes de impresi&oacute;n</summary>
+      <div class="fila" style="margin-top:10px">
+        <div><label>Ancho (mm)</label><input type="number" id="ancho" value="30"></div>
+        <div><label>Alto (mm)</label><input type="number" id="alto" value="20"></div>
+      </div>
+      <div class="fila" style="margin-top:10px">
+        <div><label>Velocidad</label><input type="number" id="speed" value="3" min="1" max="8"></div>
+        <div><label>Densidad</label><input type="number" id="density" value="10" min="0" max="15"></div>
+      </div>
+      <div class="fila" style="margin-top:10px">
+        <div>
+          <label>Grosor barra</label>
+          <select id="narrow">
+            <option value="2" selected>2 &mdash; normal</option>
+            <option value="3">3 &mdash; grueso</option>
+          </select>
+        </div>
+        <div><label>Gap (mm)</label><input type="number" id="gap" value="2" step="0.5"></div>
+      </div>
+    </details>
+  </div>
+
+</div>
+
+<script>
+/* ============================================================
+   PEGA AQUI LA URL DE TU APPS SCRIPT (termina en /exec)
+   ============================================================ */
+const API = 'https://script.google.com/macros/s/AKfy.../exec';
+
+let PASS = '';
+let caracteristica = null;
+let cola = [];
+let timerBusqueda = null;
+let contadorJSONP = 0;
+
+/* ---------- JSONP ---------- */
+function pedir(params) {
+  return new Promise((resolve, reject) => {
+    const nombreCb = 'cbD23_' + (++contadorJSONP);
+    const script = document.createElement('script');
+    const timeout = setTimeout(() => {
+      limpiar();
+      reject(new Error('Sin respuesta del servidor'));
+    }, 15000);
+
+    function limpiar() {
+      clearTimeout(timeout);
+      delete window[nombreCb];
+      if (script.parentNode) script.parentNode.removeChild(script);
+    }
+
+    window[nombreCb] = (data) => { limpiar(); resolve(data); };
+    script.onerror = () => { limpiar(); reject(new Error('No se pudo conectar')); };
+
+    const qs = Object.keys(params)
+      .map(k => encodeURIComponent(k) + '=' + encodeURIComponent(params[k]))
+      .join('&');
+    script.src = API + '?callback=' + nombreCb + '&' + qs;
+    document.body.appendChild(script);
+  });
+}
+
+/* ---------- LOGIN ---------- */
+async function entrar() {
+  const p = document.getElementById('pass').value;
+  mostrar('msgLogin', 'Verificando...', 'ok');
+  try {
+    const r = await pedir({ pass: p, q: 'zz' });
+    if (r.error) {
+      mostrar('msgLogin', 'Contrase\u00f1a incorrecta', 'err');
+      return;
+    }
+    PASS = p;
+    document.getElementById('login').classList.add('oculto');
+    document.getElementById('app').classList.remove('oculto');
+  } catch (e) {
+    mostrar('msgLogin', e.message, 'err');
+  }
+}
+document.getElementById('pass').addEventListener('keydown', e => {
+  if (e.key === 'Enter') entrar();
+});
+
+function mostrar(id, texto, tipo) {
+  const el = document.getElementById(id);
+  el.textContent = texto;
+  el.className = 'msg ' + tipo;
+}
+
+/* ---------- BLUETOOTH ---------- */
+async function conectar() {
+  if (!navigator.bluetooth) {
+    mostrar('msgBt', 'Sin soporte Bluetooth. Usa Chrome en Android.', 'err');
+    return;
+  }
+  try {
+    mostrar('msgBt', 'Buscando impresora...', 'ok');
+
+    const dispositivo = await navigator.bluetooth.requestDevice({
+      acceptAllDevices: true,
+      optionalServices: [
+        '000018f0-0000-1000-8000-00805f9b34fb',
+        '0000ff00-0000-1000-8000-00805f9b34fb',
+        '0000ffe0-0000-1000-8000-00805f9b34fb',
+        '0000fff0-0000-1000-8000-00805f9b34fb',
+        '0000ff80-0000-1000-8000-00805f9b34fb',
+        '49535343-fe7d-4ae5-8fa9-9fafd205e455'
+      ]
+    });
+
+    const servidor = await dispositivo.gatt.connect();
+    const servicios = await servidor.getPrimaryServices();
+
+    caracteristica = null;
+    for (const s of servicios) {
+      const cs = await s.getCharacteristics();
+      for (const c of cs) {
+        if (c.properties.writeWithoutResponse || c.properties.write) {
+          caracteristica = c;
+          break;
+        }
+      }
+      if (caracteristica) break;
+    }
+
+    if (!caracteristica) {
+      mostrar('msgBt', 'Conectada, pero sin canal de escritura.', 'err');
+      return;
+    }
+
+    dispositivo.addEventListener('gattserverdisconnected', () => {
+      caracteristica = null;
+      const e = document.getElementById('estado');
+      e.textContent = 'Desconectada';
+      e.classList.remove('on');
+      actualizarBoton();
+    });
+
+    const est = document.getElementById('estado');
+    est.textContent = dispositivo.name || 'Conectada';
+    est.classList.add('on');
+    mostrar('msgBt', 'Impresora lista.', 'ok');
+    actualizarBoton();
+
+  } catch (e) {
+    mostrar('msgBt', 'Error: ' + e.message, 'err');
+  }
+}
+
+/* ---------- BUSQUEDA ---------- */
+document.getElementById('busqueda').addEventListener('input', function() {
+  clearTimeout(timerBusqueda);
+  const q = this.value;
+  if (q.trim().length < 2) {
+    document.getElementById('resultados').innerHTML = '';
+    return;
+  }
+  timerBusqueda = setTimeout(async () => {
+    try {
+      const r = await pedir({ pass: PASS, q: q });
+      pintarResultados(r.productos || []);
+    } catch (e) {
+      document.getElementById('resultados').innerHTML =
+        '<div class="vacio">' + e.message + '</div>';
+    }
+  }, 350);
+});
+
+function pintarResultados(lista) {
+  const div = document.getElementById('resultados');
+  if (!lista.length) {
+    div.innerHTML = '<div class="vacio">Sin resultados</div>';
+    return;
+  }
+  window._ultimos = lista;
+  div.innerHTML = lista.map((p, i) =>
+    '<div class="prod" onclick="agregar(' + i + ')">' +
+      '<b>' + escapar(p.n) + '</b>' +
+      '<span>' + p.c + ' &mdash; $' + p.p.toLocaleString('es-CL') + '</span>' +
+    '</div>'
+  ).join('');
+}
+
+function escapar(s) {
+  return String(s).replace(/[<>&"]/g, c =>
+    ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+}
+
+/* ---------- COLA ---------- */
+function agregar(i) {
+  const p = window._ultimos[i];
+  const ya = cola.find(x => x.c === p.c);
+  if (ya) ya.cant++;
+  else cola.push({ n: p.n, c: p.c, p: p.p, cant: 1 });
+  pintarCola();
+  document.getElementById('busqueda').value = '';
+  document.getElementById('resultados').innerHTML = '';
+}
+
+function quitar(i)  { cola.splice(i, 1); pintarCola(); }
+function vaciarCola() { cola = []; pintarCola(); }
+function cambiar(i, d) { cola[i].cant = Math.max(1, cola[i].cant + d); pintarCola(); }
+
+function pintarCola() {
+  const div = document.getElementById('cola');
+  if (!cola.length) {
+    div.innerHTML = '<div class="vacio">Sin etiquetas</div>';
+  } else {
+    div.innerHTML = cola.map((p, i) =>
+      '<div class="cola-item">' +
+        '<div class="nom">' + escapar(p.n) +
+          '<br><span style="color:#6B6B6B">$' + p.p.toLocaleString('es-CL') + '</span></div>' +
+        '<button class="mini" onclick="cambiar(' + i + ',-1)">&minus;</button>' +
+        '<span class="cant">' + p.cant + '</span>' +
+        '<button class="mini" style="color:#3D9B5D" onclick="cambiar(' + i + ',1)">+</button>' +
+        '<button class="mini" onclick="quitar(' + i + ')">&times;</button>' +
+      '</div>'
+    ).join('');
+  }
+  actualizarBoton();
+}
+
+function actualizarBoton() {
+  document.getElementById('btnImprimir').disabled = (!caracteristica || !cola.length);
+}
+
+/* ---------- TSPL ---------- */
+function sinTildes(s) {
+  return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                  .replace(/"/g, "'").toUpperCase();
+}
+
+function construirTSPL(p) {
+  const ancho   = Number(document.getElementById('ancho').value);
+  const alto    = Number(document.getElementById('alto').value);
+  const gap     = Number(document.getElementById('gap').value);
+  const speed   = Number(document.getElementById('speed').value);
+  const density = Number(document.getElementById('density').value);
+  const narrow  = Number(document.getElementById('narrow').value);
+
+  const PPM = 8;                        // 203 dpi = 8 puntos/mm
+  const anchoPt = Math.round(ancho * PPM);
+  const altoPt  = Math.round(alto  * PPM);
+  const margen  = 20;                   // zona muda ~2,5mm
+
+  const nombre = sinTildes(p.n);
+  const MAX = 22;
+  let l1 = nombre, l2 = '';
+  if (nombre.length > MAX) {
+    let corte = nombre.lastIndexOf(' ', MAX);
+    if (corte < 10) corte = MAX;
+    l1 = nombre.slice(0, corte);
+    l2 = nombre.slice(corte + 1, corte + 1 + MAX);
+  }
+
+  const precio = '$' + Number(p.p).toLocaleString('es-CL');
+  const yBarra = l2 ? 36 : 26;
+  const altoBarra = Math.max(30, altoPt - yBarra - 34);
+
+  return [
+    'SIZE ' + ancho + ' mm,' + alto + ' mm',
+    'GAP ' + gap + ' mm,0 mm',
+    'DIRECTION 0',
+    'REFERENCE 0,0',
+    'DENSITY ' + density,
+    'SPEED ' + speed,
+    'CLS',
+    'TEXT ' + margen + ',6,"1",0,1,1,"' + l1 + '"',
+    l2 ? 'TEXT ' + margen + ',20,"1",0,1,1,"' + l2 + '"' : null,
+    'BARCODE ' + margen + ',' + yBarra + ',"128",' + altoBarra + ',0,0,' +
+      narrow + ',' + (narrow * 2) + ',"' + p.c + '"',
+    'TEXT ' + margen + ',' + (altoPt - 30) + ',"3",0,1,1,"' + precio + '"',
+    'PRINT ' + p.cant,
+    ''
+  ].filter(x => x !== null).join('\r\n');
+}
+
+/* ---------- IMPRESION ---------- */
+async function enviar(texto) {
+  const datos = new TextEncoder().encode(texto);
+  const TROZO = 100;
+  for (let i = 0; i < datos.length; i += TROZO) {
+    const parte = datos.slice(i, i + TROZO);
+    if (caracteristica.properties.writeWithoutResponse) {
+      await caracteristica.writeValueWithoutResponse(parte);
+    } else {
+      await caracteristica.writeValue(parte);
+    }
+    await new Promise(r => setTimeout(r, 40));
+  }
+}
+
+async function imprimirCola() {
+  document.getElementById('btnImprimir').disabled = true;
+  try {
+    let total = 0;
+    for (const p of cola) {
+      await enviar(construirTSPL(p));
+      total += p.cant;
+      await new Promise(r => setTimeout(r, 300));
+    }
+    mostrar('msgImp', total + ' etiqueta(s) enviadas.', 'ok');
+  } catch (e) {
+    mostrar('msgImp', 'Error: ' + e.message, 'err');
+  }
+  actualizarBoton();
+}
+</script>
+</body>
+</html>
