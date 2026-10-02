@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Etiquetas D23</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
 <style>
   :root{
     --azul:#2B5CAD; --rojo:#E63329; --verde:#3D9B5D; --gris:#6B6B6B;
@@ -38,7 +42,7 @@
   .cola-item{display:flex;align-items:center;gap:8px;padding:9px 0;
         border-bottom:1px solid #f0f0f0;font-size:13px}
   .cola-item:last-child{border-bottom:0}
-  .cola-item .nom{flex:1;line-height:1.3}
+  .cola-item .nom{flex:1;line-height:1.3;cursor:pointer}
   .cola-item .cant{font-weight:700;color:var(--azul);min-width:30px;text-align:center}
   .mini{background:none;border:0;color:var(--rojo);font-size:20px;width:28px;padding:0}
   .vacio{color:#aaa;font-size:13px;text-align:center;padding:14px 0}
@@ -48,6 +52,23 @@
   .msg.err{background:#fdecea;color:#a3241c;display:block}
   .msg.ok{background:#e8f5ec;color:#256b3c;display:block}
   .oculto{display:none!important}
+
+  /* --- Góndola --- */
+  .tabs{display:flex;gap:8px;margin-bottom:12px}
+  .tabs button{background:#fff;color:var(--azul);border:1px solid var(--azul);padding:11px}
+  .tabs button.on{background:var(--azul);color:#fff}
+  .tipo{display:inline-block;font-size:10px;font-weight:700;color:#fff;padding:2px 6px;
+        border-radius:5px;margin-right:6px;vertical-align:middle}
+  .tipo.ALZA{background:var(--rojo)}
+  .tipo.BAJA{background:var(--verde)}
+  .tipo.NUEVO{background:var(--azul)}
+  #preview{width:100%;height:auto;border:1px solid var(--borde);border-radius:6px;
+        background:#fff;display:block}
+  .nota{font-size:12px;color:var(--gris);margin-top:6px}
+  .check{display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;
+        font-size:13px;color:#1c1c1c;margin-top:12px}
+  .check input{width:auto}
+  select.tam{width:84px;flex:none;padding:6px 4px;font-size:13px}
 </style>
 </head>
 <body>
@@ -71,58 +92,141 @@
     <div id="msgBt" class="msg"></div>
   </div>
 
-  <div class="card">
-    <label>Buscar producto</label>
-    <input id="busqueda" placeholder="Nombre o c&oacute;digo..." autocomplete="off">
-    <div id="resultados"></div>
+  <div class="tabs">
+    <button id="tabC" class="on" onclick="cambiarModo('c')">C&oacute;digos</button>
+    <button id="tabG" onclick="cambiarModo('g')">G&oacute;ndola</button>
   </div>
 
-  <div class="card">
-    <label>Cola de impresi&oacute;n</label>
-    <div id="cola"><div class="vacio">Sin etiquetas</div></div>
-    <button id="btnImprimir" class="btn-verde" style="margin-top:10px"
-            onclick="imprimirCola()" disabled>Imprimir</button>
-    <button class="btn-gris" style="margin-top:8px" onclick="vaciarCola()">Vaciar</button>
-    <div id="msgImp" class="msg"></div>
+  <!-- ===================== MODO CODIGOS ===================== -->
+  <div id="modoC">
+
+    <div class="card">
+      <label>Buscar producto</label>
+      <input id="busqueda" placeholder="Nombre o c&oacute;digo..." autocomplete="off">
+      <div id="resultados"></div>
+    </div>
+
+    <div class="card">
+      <label>Cola de impresi&oacute;n</label>
+      <div id="cola"><div class="vacio">Sin etiquetas</div></div>
+      <button id="btnImprimir" class="btn-verde" style="margin-top:10px"
+              onclick="imprimirCola()" disabled>Imprimir</button>
+      <button class="btn-gris" style="margin-top:8px" onclick="vaciarCola()">Vaciar</button>
+      <div id="msgImp" class="msg"></div>
+    </div>
+
+    <div class="card">
+      <details>
+        <summary>Ajustes de impresi&oacute;n</summary>
+        <div class="fila" style="margin-top:10px">
+          <div><label>Etiqueta ancho</label><input type="number" id="ancho" value="30" step="0.5"></div>
+          <div><label>Etiqueta alto</label><input type="number" id="alto" value="20" step="0.5"></div>
+        </div>
+        <div class="fila" style="margin-top:10px">
+          <div><label>Ancho total papel</label><input type="number" id="anchoTotal" value="62" step="0.5"></div>
+          <div><label>Separac. horiz.</label><input type="number" id="sepH" value="2" step="0.5"></div>
+        </div>
+        <div class="fila" style="margin-top:10px">
+          <div>
+            <label>Etiquetas por fila</label>
+            <select id="columnas">
+              <option value="2" selected>2 &mdash; rollo doble</option>
+              <option value="1">1 &mdash; rollo simple</option>
+            </select>
+          </div>
+          <div><label>Letras por l&iacute;nea</label><input type="number" id="maxChars" value="17" min="8" max="18"></div>
+        </div>
+        <div class="fila" style="margin-top:10px">
+          <div><label>Velocidad</label><input type="number" id="speed" value="3" min="1" max="8"></div>
+          <div><label>Densidad</label><input type="number" id="density" value="10" min="0" max="15"></div>
+        </div>
+        <div class="fila" style="margin-top:10px">
+          <div>
+            <label>Grosor barra</label>
+            <select id="narrow">
+              <option value="1" selected>1 &mdash; fino</option>
+              <option value="2">2 &mdash; normal</option>
+              <option value="3">3 &mdash; grueso</option>
+            </select>
+          </div>
+          <div><label>Gap (mm)</label><input type="number" id="gap" value="2" step="0.5"></div>
+        </div>
+      </details>
+    </div>
+
   </div>
 
-  <div class="card">
-    <details>
-      <summary>Ajustes de impresi&oacute;n</summary>
-      <div class="fila" style="margin-top:10px">
-        <div><label>Etiqueta ancho</label><input type="number" id="ancho" value="30" step="0.5"></div>
-        <div><label>Etiqueta alto</label><input type="number" id="alto" value="20" step="0.5"></div>
-      </div>
-      <div class="fila" style="margin-top:10px">
-        <div><label>Ancho total papel</label><input type="number" id="anchoTotal" value="62" step="0.5"></div>
-        <div><label>Separac. horiz.</label><input type="number" id="sepH" value="2" step="0.5"></div>
-      </div>
-      <div class="fila" style="margin-top:10px">
-        <div>
-          <label>Etiquetas por fila</label>
-          <select id="columnas">
-            <option value="2" selected>2 &mdash; rollo doble</option>
-            <option value="1">1 &mdash; rollo simple</option>
-          </select>
+  <!-- ===================== MODO GONDOLA ===================== -->
+  <div id="modoG" class="oculto">
+
+    <div class="card">
+      <label>Cambios de precio pendientes</label>
+      <div id="pend"><div class="vacio">Sin pendientes</div></div>
+      <button id="btnPendG" class="btn-verde" style="margin-top:10px"
+              onclick="imprimirPendientes('G')" disabled>Imprimir grandes</button>
+      <button id="btnPendC" class="btn-verde" style="margin-top:8px"
+              onclick="imprimirPendientes('C')" disabled>Imprimir peque&ntilde;as y medianas</button>
+      <button class="btn-gris" style="margin-top:8px" onclick="cargarPendientes()">Actualizar lista</button>
+      <div id="msgPend" class="msg"></div>
+    </div>
+
+    <div class="card">
+      <label>Vista previa</label>
+      <canvas id="preview" width="640" height="320"></canvas>
+      <div class="nota">Toca un producto de las listas para verlo aqu&iacute;. As&iacute; sale impreso, en blanco y negro. La Mediana son 3 etiquetas del rollo chico: nombre, c&oacute;digo de barras y precio.</div>
+    </div>
+
+    <div class="card">
+      <label>Imprimir manual</label>
+      <input id="busquedaG" placeholder="Nombre o c&oacute;digo..." autocomplete="off">
+      <div id="resultadosG"></div>
+      <div id="colaG" style="margin-top:8px"><div class="vacio">Sin etiquetas</div></div>
+      <button id="btnManG" class="btn-verde" style="margin-top:10px"
+              onclick="imprimirManual('G')" disabled>Imprimir grandes</button>
+      <button id="btnManC" class="btn-verde" style="margin-top:8px"
+              onclick="imprimirManual('C')" disabled>Imprimir peque&ntilde;as y medianas</button>
+      <button class="btn-gris" style="margin-top:8px" onclick="vaciarColaG()">Vaciar</button>
+      <div id="msgImpG" class="msg"></div>
+    </div>
+
+    <div class="card">
+      <details>
+        <summary>Ajustes de impresi&oacute;n g&oacute;ndola</summary>
+        <div class="fila" style="margin-top:10px">
+          <div>
+            <label>Rollo</label>
+            <select id="gRollo">
+              <option value="40" selected>40 mm de ancho</option>
+              <option value="80">80 mm de ancho</option>
+            </select>
+          </div>
+          <div>
+            <label>Sentido</label>
+            <select id="gDir">
+              <option value="0" selected>Normal</option>
+              <option value="1">Girado 180&deg;</option>
+            </select>
+          </div>
         </div>
-        <div><label>Letras por l&iacute;nea</label><input type="number" id="maxChars" value="17" min="8" max="18"></div>
-      </div>
-      <div class="fila" style="margin-top:10px">
-        <div><label>Velocidad</label><input type="number" id="speed" value="3" min="1" max="8"></div>
-        <div><label>Densidad</label><input type="number" id="density" value="10" min="0" max="15"></div>
-      </div>
-      <div class="fila" style="margin-top:10px">
-        <div>
-          <label>Grosor barra</label>
-          <select id="narrow">
-            <option value="1" selected>1 &mdash; fino</option>
-            <option value="2">2 &mdash; normal</option>
-            <option value="3">3 &mdash; grueso</option>
-          </select>
+        <div class="fila" style="margin-top:10px">
+          <div><label>Densidad</label><input type="number" id="gDensity" value="10" min="0" max="15"></div>
+          <div><label>Velocidad</label><input type="number" id="gSpeed" value="3" min="1" max="8"></div>
         </div>
-        <div><label>Gap (mm)</label><input type="number" id="gap" value="2" step="0.5"></div>
-      </div>
-    </details>
+        <div class="fila" style="margin-top:10px">
+          <div><label>Gap (mm)</label><input type="number" id="gGap" value="2" step="0.5"></div>
+          <div><label>Umbral negro</label><input type="number" id="gUmbral" value="140" min="60" max="220" step="10"></div>
+        </div>
+        <div class="fila" style="margin-top:10px">
+          <div><label>Bloque (bytes)</label><input type="number" id="gTrozo" value="100" min="20" max="500" step="10"></div>
+          <div><label>Pausa (ms)</label><input type="number" id="gPausa" value="25" min="0" max="200" step="5"></div>
+        </div>
+        <label class="check"><input type="checkbox" id="gInv"> Invertir colores (si sale en negativo)</label>
+        <div class="nota">Estos ajustes valen para la Grande (80&times;40). Peque&ntilde;a y Mediana usan las medidas del rollo de "Ajustes de impresi&oacute;n" en la pesta&ntilde;a C&oacute;digos, m&aacute;s el umbral, invertir, bloque y pausa de aqu&iacute;.
+          Rollo 40 mm de ancho: la etiqueta de 80&times;40 sale acostada y la app la gira sola.
+          Si la impresi&oacute;n sale con basura, sube la pausa o baja el bloque.</div>
+      </details>
+    </div>
+
   </div>
 
 </div>
@@ -138,6 +242,8 @@ let caracteristica = null;
 let cola = [];
 let timerBusqueda = null;
 let contadorJSONP = 0;
+let imprimiendo = false;
+let nombreImpresora = null;
 
 /* ---------- JSONP ---------- */
 function pedir(params) {
@@ -179,6 +285,10 @@ async function entrar() {
     PASS = p;
     document.getElementById('login').classList.add('oculto');
     document.getElementById('app').classList.remove('oculto');
+    cargarAjustesG();
+    let modo = 'c';
+    try { modo = localStorage.getItem('d23_modo') || 'c'; } catch (e) {}
+    cambiarModo(modo);
   } catch (e) {
     mostrar('msgLogin', e.message, 'err');
   }
@@ -191,6 +301,17 @@ function mostrar(id, texto, tipo) {
   const el = document.getElementById(id);
   el.textContent = texto;
   el.className = 'msg ' + tipo;
+}
+function ocultarMsg(id) { document.getElementById(id).className = 'msg'; }
+
+function cambiarModo(m) {
+  if (m !== 'g') m = 'c';
+  document.getElementById('modoC').classList.toggle('oculto', m !== 'c');
+  document.getElementById('modoG').classList.toggle('oculto', m !== 'g');
+  document.getElementById('tabC').classList.toggle('on', m === 'c');
+  document.getElementById('tabG').classList.toggle('on', m === 'g');
+  try { localStorage.setItem('d23_modo', m); } catch (e) {}
+  if (m === 'g') cargarPendientes();
 }
 
 /* ---------- BLUETOOTH ---------- */
@@ -236,12 +357,14 @@ async function conectar() {
 
     dispositivo.addEventListener('gattserverdisconnected', () => {
       caracteristica = null;
+      nombreImpresora = null;
       const e = document.getElementById('estado');
       e.textContent = 'Desconectada';
       e.classList.remove('on');
       actualizarBoton();
     });
 
+    nombreImpresora = dispositivo.name || 'impresora';
     const est = document.getElementById('estado');
     est.textContent = dispositivo.name || 'Conectada';
     est.classList.add('on');
@@ -253,7 +376,7 @@ async function conectar() {
   }
 }
 
-/* ---------- BUSQUEDA ---------- */
+/* ---------- BUSQUEDA (codigos) ---------- */
 document.getElementById('busqueda').addEventListener('input', function() {
   clearTimeout(timerBusqueda);
   const q = this.value;
@@ -267,7 +390,7 @@ document.getElementById('busqueda').addEventListener('input', function() {
       pintarResultados(r.productos || []);
     } catch (e) {
       document.getElementById('resultados').innerHTML =
-        '<div class="vacio">' + e.message + '</div>';
+        '<div class="vacio">' + escapar(e.message) + '</div>';
     }
   }, 350);
 });
@@ -282,7 +405,7 @@ function pintarResultados(lista) {
   div.innerHTML = lista.map((p, i) =>
     '<div class="prod" onclick="agregar(' + i + ')">' +
       '<b>' + escapar(p.n) + '</b>' +
-      '<span>' + p.c + ' &mdash; $' + p.p.toLocaleString('es-CL') + '</span>' +
+      '<span>' + escapar(p.c) + ' &mdash; $' + fmt(p.p) + '</span>' +
     '</div>'
   ).join('');
 }
@@ -292,7 +415,7 @@ function escapar(s) {
     ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
 }
 
-/* ---------- COLA ---------- */
+/* ---------- COLA (codigos) ---------- */
 function agregar(i) {
   const p = window._ultimos[i];
   const ya = cola.find(x => x.c === p.c);
@@ -315,7 +438,7 @@ function pintarCola() {
     div.innerHTML = cola.map((p, i) =>
       '<div class="cola-item">' +
         '<div class="nom">' + escapar(p.n) +
-          '<br><span style="color:#6B6B6B">$' + p.p.toLocaleString('es-CL') + '</span></div>' +
+          '<br><span style="color:#6B6B6B">$' + fmt(p.p) + '</span></div>' +
         '<button class="mini" onclick="cambiar(' + i + ',-1)">&minus;</button>' +
         '<span class="cant">' + p.cant + '</span>' +
         '<button class="mini" style="color:#3D9B5D" onclick="cambiar(' + i + ',1)">+</button>' +
@@ -326,11 +449,24 @@ function pintarCola() {
   actualizarBoton();
 }
 
+function tipoDe(it) { return (it.z === 'P' || it.z === 'M') ? 'C' : 'G'; }
+
 function actualizarBoton() {
-  document.getElementById('btnImprimir').disabled = (!caracteristica || !cola.length);
+  const sin = !caracteristica || imprimiendo;
+  document.getElementById('btnImprimir').disabled = sin || !cola.length;
+  const nom = { G: 'grandes', C: 'peque\u00f1as y medianas' };
+  ['G', 'C'].forEach(t => {
+    const nP = pend.filter(x => tipoDe(x) === t).length;
+    const nM = colaG.filter(x => tipoDe(x) === t).length;
+    const bp = document.getElementById('btnPend' + t), bm = document.getElementById('btnMan' + t);
+    bp.disabled = sin || !nP;
+    bm.disabled = sin || !nM;
+    bp.textContent = 'Imprimir ' + nom[t] + (nP ? ' (' + nP + ')' : '');
+    bm.textContent = 'Imprimir ' + nom[t] + (nM ? ' (' + nM + ')' : '');
+  });
 }
 
-/* ---------- TSPL ---------- */
+/* ---------- TSPL (codigos) ---------- */
 function sinTildes(s) {
   return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '')
                   .replace(/"/g, "'").toUpperCase();
@@ -357,7 +493,7 @@ function bloqueEtiqueta(p, xBase, altoPt) {
   // --- Layout vertical: nombre en fuente "2" (20 pt de alto) ---
   const ALTO_NOMBRE = 20;
   const y1 = 4;
-  const y2 = y1 + ALTO_NOMBRE + 2;                       // 26
+  const y2 = y1 + ALTO_NOMBRE + 2;
   const yBarra = l2 ? (y2 + ALTO_NOMBRE + 4) : (y1 + ALTO_NOMBRE + 6);
   const yPrecio = altoPt - 30;
   const altoBarra = Math.max(24, Math.min(70, yPrecio - yBarra - 6));
@@ -385,7 +521,6 @@ function construirTSPL(par) {
   const anchoMedio = (columnas === 2) ? anchoTotal : ancho;
   const altoPt = Math.round(alto * PPM);
 
-  // Margen izquierdo del papel, repartiendo lo que sobra
   const usado = columnas === 2 ? (ancho * 2 + sepH) : ancho;
   const margenPapel = Math.max(0, Math.round(((anchoMedio - usado) / 2) * PPM));
 
@@ -411,37 +546,40 @@ function construirTSPL(par) {
   return cmd.join('\r\n');
 }
 
-/* ---------- IMPRESION ---------- */
-async function enviar(texto) {
-  const datos = new TextEncoder().encode(texto);
-  const TROZO = 100;
-  for (let i = 0; i < datos.length; i += TROZO) {
-    const parte = datos.slice(i, i + TROZO);
+/* ---------- ENVIO A LA IMPRESORA ---------- */
+function esperar(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function enviar(datos, trozo, pausa) {
+  if (typeof datos === 'string') datos = new TextEncoder().encode(datos);
+  trozo = trozo || 100;
+  pausa = (pausa === undefined) ? 40 : pausa;
+  for (let i = 0; i < datos.length; i += trozo) {
+    if (!caracteristica) throw new Error('Impresora desconectada');
+    const parte = datos.slice(i, i + trozo);
     if (caracteristica.properties.writeWithoutResponse) {
       await caracteristica.writeValueWithoutResponse(parte);
     } else {
       await caracteristica.writeValue(parte);
     }
-    await new Promise(r => setTimeout(r, 40));
+    if (pausa) await esperar(pausa);
   }
 }
 
 async function imprimirCola() {
-  document.getElementById('btnImprimir').disabled = true;
+  imprimiendo = true;
+  actualizarBoton();
   try {
     const columnas = Number(document.getElementById('columnas').value);
 
-    // Expandir la cola: cada etiqueta individual como un elemento
     const planas = [];
     for (const p of cola) {
       for (let i = 0; i < p.cant; i++) planas.push(p);
     }
 
-    // Agrupar de a "columnas" por fila fisica del rollo
     for (let i = 0; i < planas.length; i += columnas) {
       const par = planas.slice(i, i + columnas);
       await enviar(construirTSPL(par));
-      await new Promise(r => setTimeout(r, 350));
+      await esperar(350);
     }
 
     const filas = Math.ceil(planas.length / columnas);
@@ -449,7 +587,675 @@ async function imprimirCola() {
   } catch (e) {
     mostrar('msgImp', 'Error: ' + e.message, 'err');
   }
+  imprimiendo = false;
   actualizarBoton();
+}
+
+/* ============================================================
+   GONDOLA — etiqueta 80 x 40 mm dibujada como imagen (BITMAP TSPL)
+   ============================================================ */
+const FUENTE = '"Open Sans", Roboto, Arial, sans-serif';
+/* Logo D23 incrustado: no hace falta subir logo.png. Solo se usa en la etiqueta Grande. */
+const LOGO_SRC = 'data:image/png;base64,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';
+const GW = 640, GH = 320;              // 80 x 40 mm a 203 dpi (8 puntos/mm)
+const AJ_G = ['gRollo', 'gDir', 'gDensity', 'gSpeed', 'gGap', 'gUmbral', 'gTrozo', 'gPausa', 'gInv'];
+
+let pend = [];
+let colaG = [];
+let logoImg = null;
+let recursos = null;
+let itemPreview = null;
+let timerBusquedaG = null;
+
+function val(id) { return document.getElementById(id).value; }
+function num(id) { return Number(document.getElementById(id).value); }
+function fmt(n)  { return Math.round(Number(n) || 0).toLocaleString('es-CL'); }
+function dos(n)  { return String(n).padStart(2, '0'); }
+function fechaCorta(d) { return dos(d.getDate()) + '/' + dos(d.getMonth() + 1) + '/' + String(d.getFullYear()).slice(2); }
+function horaCorta(d)  { return dos(d.getHours()) + ':' + dos(d.getMinutes()); }
+
+/* ---------- Ajustes guardados en este telefono ---------- */
+function cargarAjustesG() {
+  let g = {};
+  try { g = JSON.parse(localStorage.getItem('d23_ajustesG') || '{}'); } catch (e) {}
+  AJ_G.forEach(id => {
+    const el = document.getElementById(id);
+    if (g[id] !== undefined) {
+      if (el.type === 'checkbox') el.checked = !!g[id];
+      else el.value = g[id];
+    }
+    el.addEventListener('change', guardarAjustesG);
+  });
+}
+function guardarAjustesG() {
+  const g = {};
+  AJ_G.forEach(id => {
+    const el = document.getElementById(id);
+    g[id] = (el.type === 'checkbox') ? el.checked : el.value;
+  });
+  try { localStorage.setItem('d23_ajustesG', JSON.stringify(g)); } catch (e) {}
+  if (itemPreview) previsualizar(itemPreview);
+}
+
+/* ---------- Logo y fuente ---------- */
+function prepararRecursos() {
+  if (!recursos) {
+    const logo = new Promise(res => {
+      const img = new Image();
+      img.onload = () => { logoImg = img; res(); };
+      img.onerror = () => { logoImg = null; res(); };
+      img.src = LOGO_SRC;
+    });
+    const fuentes = (document.fonts && document.fonts.load)
+      ? Promise.all([
+          document.fonts.load('800 60px "Open Sans"'),
+          document.fonts.load('700 20px "Open Sans"')
+        ]).catch(() => {})
+      : Promise.resolve();
+    recursos = Promise.all([logo, fuentes]);
+  }
+  return recursos;
+}
+
+/* ---------- Pendientes (cambios de precio) ---------- */
+async function cargarPendientes() {
+  mostrar('msgPend', 'Cargando...', 'ok');
+  try {
+    const r = await pedir({ pass: PASS, a: 'pend' });
+    if (r.error) throw new Error(r.error);
+    pend = (r.pendientes || []).map(x => Object.assign(x, { cant: 1, z: x.z || 'G' }));
+    pintarPend();
+    ocultarMsg('msgPend');
+    if (pend.length && !itemPreview) previsualizar(pend[0]);
+  } catch (e) {
+    mostrar('msgPend', 'Error: ' + e.message, 'err');
+  }
+}
+
+function pintarPend() {
+  const div = document.getElementById('pend');
+  if (!pend.length) {
+    div.innerHTML = '<div class="vacio">Sin pendientes</div>';
+  } else {
+    div.innerHTML = pend.map((p, i) => {
+      const precios = (p.t === 'NUEVO')
+        ? '$' + fmt(p.p)
+        : '$' + fmt(p.pa) + ' &rarr; $' + fmt(p.p);
+      return '<div class="cola-item">' +
+        '<div class="nom" onclick="previsualizar(pend[' + i + '])">' +
+          '<span class="tipo ' + escapar(p.t) + '">' + escapar(p.t) + '</span>' + escapar(p.n) +
+          '<br><span style="color:#6B6B6B">' + precios + '</span></div>' +
+        selTam('p', i, p.z) +
+        '<button class="mini" onclick="cambiarP(' + i + ',-1)">&minus;</button>' +
+        '<span class="cant">' + p.cant + '</span>' +
+        '<button class="mini" style="color:#3D9B5D" onclick="cambiarP(' + i + ',1)">+</button>' +
+        '<button class="mini" onclick="descartar(' + i + ')">&times;</button>' +
+      '</div>';
+    }).join('');
+  }
+  actualizarBoton();
+}
+
+function selTam(origen, i, z) {
+  const ops = [['G', 'Grande'], ['M', 'Mediana'], ['P', 'Peque\u00f1a']];
+  return '<select class="tam" onchange="fijarTam(\'' + origen + '\',' + i + ',this.value)">' +
+    ops.map(o => '<option value="' + o[0] + '"' + (o[0] === (z || 'G') ? ' selected' : '') + '>' + o[1] + '</option>').join('') +
+    '</select>';
+}
+
+/* El tamaño queda guardado por producto: se elige una vez y siempre sale igual */
+async function fijarTam(origen, i, z) {
+  const it = (origen === 'p' ? pend : colaG)[i];
+  if (!it) return;
+  it.z = z;
+  if (origen === 'p') pintarPend(); else pintarColaG();
+  previsualizar(it);
+  try {
+    const r = await pedir({ pass: PASS, a: 'tam', c: it.c, z: z });
+    if (r.error) throw new Error(r.error);
+  } catch (e) {
+    mostrar(origen === 'p' ? 'msgPend' : 'msgImpG', 'No se pudo guardar el tama\u00f1o: ' + e.message, 'err');
+  }
+}
+
+function cambiarP(i, d) { pend[i].cant = Math.max(1, pend[i].cant + d); pintarPend(); }
+
+async function descartar(i) {
+  const p = pend[i];
+  if (!confirm('\u00bfDescartar la etiqueta de ' + p.n + '? No se imprimir\u00e1.')) return;
+  try {
+    const r = await pedir({ pass: PASS, a: 'marcar', ids: p.id, estado: 'DESCARTADA' });
+    if (r.error) throw new Error(r.error);
+    pend = pend.filter(x => x !== p);
+    pintarPend();
+  } catch (e) {
+    mostrar('msgPend', 'Error: ' + e.message, 'err');
+  }
+}
+
+async function imprimirPendientes(tipo) {
+  const lista = pend.filter(x => tipoDe(x) === tipo);
+  if (!caracteristica || !lista.length || imprimiendo) return;
+  if (!verificarImpresora(tipo)) return;
+  imprimiendo = true;
+  actualizarBoton();
+
+  const hechos = [];
+  let error = null;
+  try { await imprimirLista(lista, tipo, hechos, 'msgPend'); } catch (e) { error = e; }
+  if (!error) recordarImpresora(tipo);
+
+  let aviso = '';
+  if (hechos.length) {
+    try {
+      const r = await pedir({ pass: PASS, a: 'marcar', ids: hechos.map(x => x.id).join(','), estado: 'IMPRESA' });
+      if (r.error) throw new Error(r.error);
+    } catch (e2) {
+      aviso = ' No se pudieron marcar como impresas, así que volverán a aparecer.';
+    }
+    pend = pend.filter(x => hechos.indexOf(x) === -1);
+  }
+
+  imprimiendo = false;
+  pintarPend();
+  if (error) mostrar('msgPend', 'Error: ' + error.message + '. Impresos: ' + hechos.length + '.' + aviso, 'err');
+  else mostrar('msgPend', hechos.length + ' producto(s) impresos.' + aviso, aviso ? 'err' : 'ok');
+}
+
+/* ---------- Manual ---------- */
+document.getElementById('busquedaG').addEventListener('input', function() {
+  clearTimeout(timerBusquedaG);
+  const q = this.value;
+  const div = document.getElementById('resultadosG');
+  if (q.trim().length < 2) { div.innerHTML = ''; return; }
+  timerBusquedaG = setTimeout(async () => {
+    try {
+      const r = await pedir({ pass: PASS, q: q });
+      pintarResultadosG(r.productos || []);
+    } catch (e) {
+      div.innerHTML = '<div class="vacio">' + escapar(e.message) + '</div>';
+    }
+  }, 350);
+});
+
+function pintarResultadosG(lista) {
+  const div = document.getElementById('resultadosG');
+  if (!lista.length) { div.innerHTML = '<div class="vacio">Sin resultados</div>'; return; }
+  window._ultimosG = lista;
+  div.innerHTML = lista.map((p, i) =>
+    '<div class="prod" onclick="agregarG(' + i + ')">' +
+      '<b>' + escapar(p.n) + '</b>' +
+      '<span>' + escapar(p.c) + ' &mdash; $' + fmt(p.p) + '</span>' +
+    '</div>'
+  ).join('');
+}
+
+function agregarG(i) {
+  const p = window._ultimosG[i];
+  let it = colaG.find(x => x.c === p.c);
+  if (it) it.cant++;
+  else { it = { n: p.n, c: p.c, p: p.p, pa: 0, t: 'MANUAL', cant: 1, z: p.z || 'G' }; colaG.push(it); }
+  pintarColaG();
+  previsualizar(it);
+  document.getElementById('busquedaG').value = '';
+  document.getElementById('resultadosG').innerHTML = '';
+}
+
+function quitarG(i)     { colaG.splice(i, 1); pintarColaG(); }
+function vaciarColaG()  { colaG = []; pintarColaG(); }
+function cambiarG(i, d) { colaG[i].cant = Math.max(1, colaG[i].cant + d); pintarColaG(); }
+
+function pintarColaG() {
+  const div = document.getElementById('colaG');
+  if (!colaG.length) {
+    div.innerHTML = '<div class="vacio">Sin etiquetas</div>';
+  } else {
+    div.innerHTML = colaG.map((p, i) =>
+      '<div class="cola-item">' +
+        '<div class="nom" onclick="previsualizar(colaG[' + i + '])">' + escapar(p.n) +
+          '<br><span style="color:#6B6B6B">$' + fmt(p.p) + '</span></div>' +
+        selTam('g', i, p.z) +
+        '<button class="mini" onclick="cambiarG(' + i + ',-1)">&minus;</button>' +
+        '<span class="cant">' + p.cant + '</span>' +
+        '<button class="mini" style="color:#3D9B5D" onclick="cambiarG(' + i + ',1)">+</button>' +
+        '<button class="mini" onclick="quitarG(' + i + ')">&times;</button>' +
+      '</div>'
+    ).join('');
+  }
+  actualizarBoton();
+}
+
+async function imprimirManual(tipo) {
+  const lista = colaG.filter(x => tipoDe(x) === tipo);
+  if (!caracteristica || !lista.length || imprimiendo) return;
+  if (!verificarImpresora(tipo)) return;
+  imprimiendo = true;
+  actualizarBoton();
+  const hechos = [];
+  try {
+    await imprimirLista(lista, tipo, hechos, 'msgImpG');
+    recordarImpresora(tipo);
+    mostrar('msgImpG', hechos.length + ' producto(s) impresos.', 'ok');
+  } catch (e) {
+    mostrar('msgImpG', 'Error: ' + e.message + '. Impresos: ' + hechos.length + '.', 'err');
+  }
+  imprimiendo = false;
+  actualizarBoton();
+}
+
+/* ---------- Impresion de una lista ---------- */
+async function imprimirLista(lista, tipo, hechos, msgId) {
+  if (tipo === 'C') return imprimirChicas(lista, hechos, msgId);
+
+  await prepararRecursos();
+  const rotar = val('gRollo') === '40';
+  const total = lista.reduce((s, x) => s + x.cant, 0);
+  let n = 0;
+  for (const it of lista) {
+    for (let k = 0; k < it.cant; k++) {
+      mostrar(msgId, 'Imprimiendo ' + (++n) + ' de ' + total + '...', 'ok');
+      const bm = aBitmap(dibujarEtiquetaGrande(it, new Date()), rotar,
+                         document.getElementById('gInv').checked, num('gUmbral'));
+      await enviar(trabajoGondola(bm, rotar), num('gTrozo'), num('gPausa'));
+      await esperar(500);
+    }
+    hechos.push(it);
+  }
+}
+
+function trabajoGondola(bm, rotar) {
+  const cab = [
+    'SIZE ' + (rotar ? '40 mm,80 mm' : '80 mm,40 mm'),
+    'GAP ' + num('gGap') + ' mm,0 mm',
+    'DIRECTION ' + num('gDir'),
+    'REFERENCE 0,0',
+    'DENSITY ' + num('gDensity'),
+    'SPEED ' + num('gSpeed'),
+    'CLS',
+    'BITMAP 0,0,' + bm.wb + ',' + bm.h + ',0,'
+  ].join('\r\n');
+  const a = new TextEncoder().encode(cab);
+  const b = new TextEncoder().encode('\r\nPRINT 1,1\r\n');
+  const out = new Uint8Array(a.length + bm.data.length + b.length);
+  out.set(a, 0);
+  out.set(bm.data, a.length);
+  out.set(b, a.length + bm.data.length);
+  return out;
+}
+
+/* ---------- Dibujo de la etiqueta (640 x 320 puntos) ---------- */
+/* ============================================================
+   PEQUEÑA Y MEDIANA — se imprimen en el rollo chico (30 x 20 mm, 2 por fila)
+   Pequeña = 1 etiqueta (nombre + precio + codigo de barras)
+   Mediana = 3 etiquetas separadas: N = nombre, C = codigo de barras, V = precio
+   ============================================================ */
+/* "cada una" por defecto; "N unidades" si el nombre indica el pack (50 unidades, pack 12, x6...) */
+function unidadesDe(nombre) {
+  const t = String(nombre || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  let m = t.match(/(\d+)\s*(?:unidades|unidad|unids?|unds?|uds?|und|uni|un|u|pzas?|pzs?|piezas?)\b/);
+  if (!m) m = t.match(/\bpack\s*(?:de\s*)?x?\s*(\d+)\b/);
+  if (!m) m = t.match(/(?:^|\s)x\s*(\d+)(?=\s|$|\))/);
+  const n = m ? parseInt(m[1], 10) : 0;
+  return n > 1 ? n + ' unidades' : 'cada una';
+}
+
+function dimCelda() {
+  return { w: Math.round(num('ancho') * 8), h: Math.round(num('alto') * 8) };
+}
+
+function dibujarCelda(it, parte) {
+  const d = dimCelda();
+  const cv = document.createElement('canvas');
+  cv.width = d.w; cv.height = d.h;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, d.w, d.h);
+  ctx.fillStyle = '#000';
+  ctx.textAlign = 'center';
+
+  const pad = 6, ancho = d.w - pad * 2, cx = d.w / 2;
+  const nombre = String(it.n || '').toLocaleUpperCase('es-CL');
+  const precio = '$' + fmt(it.p);
+
+  if (parte === 'N') {
+    const r = partirNombre(ctx, nombre, ancho, 40, 16, 4);
+    const alto = Math.round(r.lineas.length * r.px * 1.12);
+    ctx.textBaseline = 'top';
+    ctx.font = '800 ' + r.px + 'px ' + FUENTE;
+    r.lineas.forEach((l, k) => ctx.fillText(l, cx, Math.round((d.h - alto) / 2 + k * r.px * 1.12)));
+
+  } else if (parte === 'C') {
+    const bc = canvasCodigo(it.c, ancho, 84, 28, [3, 2, 1]);
+    if (bc) ctx.drawImage(bc, Math.round((d.w - bc.width) / 2), Math.round((d.h - bc.height) / 2));
+
+  } else if (parte === 'V') {
+    // precio grande y "cada una" / "N unidades" abajo a la derecha
+    const disp = d.h - pad * 2 - 30;
+    ctx.textBaseline = 'alphabetic';
+    const px = ajustarPx(ctx, precio, ancho, Math.floor(disp / 0.74), 24, 800);
+    ctx.fillText(precio, cx, Math.round(pad + (disp + px * 0.72) / 2));
+    ctx.textAlign = 'right';
+    ctx.font = '700 22px ' + FUENTE;
+    ctx.fillText(unidadesDe(it.n), d.w - pad, d.h - pad - 2);
+
+  } else {                                   // 'P': nombre, codigo de barras, precio y unidades
+    const r = partirNombre(ctx, nombre, ancho, 20, 11, 2);
+    ctx.textBaseline = 'top';
+    ctx.font = '800 ' + r.px + 'px ' + FUENTE;
+    r.lineas.forEach((l, k) => ctx.fillText(l, cx, 3 + Math.round(k * r.px * 1.08)));
+    const finNombre = 3 + Math.round(r.lineas.length * r.px * 1.08);
+
+    const bc = canvasCodigo(it.c, ancho, 28, 14, [2, 1]);
+    const yBc = finNombre + 3;
+    if (bc) ctx.drawImage(bc, Math.round((d.w - bc.width) / 2), yBc);
+    const finBc = bc ? yBc + bc.height : finNombre;
+
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'right';
+    ctx.font = '700 13px ' + FUENTE;
+    ctx.fillText(unidadesDe(it.n), d.w - pad, d.h - 4);
+
+    const arriba = finBc + 3, abajo = d.h - 4 - 14;
+    const disp = abajo - arriba;
+    ctx.textAlign = 'center';
+    const px = ajustarPx(ctx, precio, ancho, Math.floor(disp / 0.74), 22, 800);
+    ctx.fillText(precio, cx, Math.round(arriba + (disp + px * 0.72) / 2));
+  }
+  return cv;
+}
+
+function partesDe(it) { return it.z === 'M' ? ['N', 'C', 'V'] : ['P']; }
+
+/* Vista previa: la Grande tal cual; Pequeña y Mediana como se pegan (celdas una al lado de otra) */
+function dibujarVista(it, cuando) {
+  if (it.z !== 'P' && it.z !== 'M') return dibujarEtiquetaGrande(it, cuando);
+
+  const celdas = partesDe(it).map(pt => dibujarCelda(it, pt));
+  const cw = celdas[0].width, ch = celdas[0].height, sep = 14;
+  const total = celdas.length * cw + (celdas.length - 1) * sep;
+  const esc = Math.min(2, (GW - 16) / total);
+  const cv = document.createElement('canvas');
+  cv.width = GW; cv.height = GH;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, GW, GH);
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 1;
+  const x0 = Math.round((GW - total * esc) / 2), y0 = Math.round((GH - ch * esc) / 2);
+  const w = Math.round(cw * esc), h = Math.round(ch * esc);
+  celdas.forEach((c, k) => {
+    const x = x0 + Math.round(k * (cw + sep) * esc);
+    ctx.drawImage(c, x, y0, w, h);
+    ctx.strokeRect(x + 0.5, y0 + 0.5, w - 1, h - 1);
+  });
+  return cv;
+}
+
+/* Una fila fisica del rollo chico: 1 o 2 celdas */
+function filaABitmap(celdas) {
+  const ancho = num('ancho'), anchoTotal = num('anchoTotal'), sepH = num('sepH'), columnas = num('columnas');
+  const anchoMedio = (columnas === 2) ? anchoTotal : ancho;
+  const usado = columnas === 2 ? (ancho * 2 + sepH) : ancho;
+  const margen = Math.max(0, Math.round(((anchoMedio - usado) / 2) * 8));
+  const W = Math.ceil(anchoMedio * 8 / 8) * 8;
+  const H = dimCelda().h;
+
+  const fila = document.createElement('canvas');
+  fila.width = W; fila.height = H;
+  const ctx = fila.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, W, H);
+  celdas.forEach((c, k) => ctx.drawImage(c, margen + Math.round(k * (ancho + sepH) * 8), 0));
+  return aBitmap(fila, false, document.getElementById('gInv').checked, num('gUmbral'));
+}
+
+function trabajoFila(bm) {
+  const columnas = num('columnas');
+  const anchoMedio = (columnas === 2) ? num('anchoTotal') : num('ancho');
+  const cab = [
+    'SIZE ' + anchoMedio + ' mm,' + num('alto') + ' mm',
+    'GAP ' + num('gap') + ' mm,0 mm',
+    'DIRECTION 0',
+    'REFERENCE 0,0',
+    'DENSITY ' + num('density'),
+    'SPEED ' + num('speed'),
+    'CLS',
+    'BITMAP 0,0,' + bm.wb + ',' + bm.h + ',0,'
+  ].join('\r\n');
+  const a = new TextEncoder().encode(cab);
+  const b = new TextEncoder().encode('\r\nPRINT 1,1\r\n');
+  const out = new Uint8Array(a.length + bm.data.length + b.length);
+  out.set(a, 0);
+  out.set(bm.data, a.length);
+  out.set(b, a.length + bm.data.length);
+  return out;
+}
+
+/* Las etiquetas se reparten en el rollo de corrido: una Mediana ocupa 3 celdas seguidas */
+async function imprimirChicas(lista, hechos, msgId) {
+  await prepararRecursos();
+  const columnas = num('columnas');
+  const celdas = [];
+  lista.forEach(it => {
+    for (let k = 0; k < it.cant; k++) {
+      const partes = partesDe(it);
+      partes.forEach((pt, j) => celdas.push({ it: it, parte: pt,
+        ultimo: (k === it.cant - 1 && j === partes.length - 1) }));
+    }
+  });
+
+  const filas = Math.ceil(celdas.length / columnas);
+  for (let i = 0; i < celdas.length; i += columnas) {
+    mostrar(msgId, 'Imprimiendo fila ' + (i / columnas + 1) + ' de ' + filas + '...', 'ok');
+    const grupo = celdas.slice(i, i + columnas);
+    const bm = filaABitmap(grupo.map(c => dibujarCelda(c.it, c.parte)));
+    await enviar(trabajoFila(bm), num('gTrozo'), num('gPausa'));
+    await esperar(500);
+    grupo.forEach(c => { if (c.ultimo) hechos.push(c.it); });
+  }
+}
+
+/* Aviso si se imprime en una impresora distinta a la que se uso antes para ese tipo de etiqueta */
+function verificarImpresora(tipo) {
+  let m = {};
+  try { m = JSON.parse(localStorage.getItem('d23_imp') || '{}'); } catch (e) {}
+  const antes = m[tipo];
+  if (antes && antes !== nombreImpresora) {
+    const que = (tipo === 'G') ? 'las etiquetas grandes (80x40)' : 'las etiquetas pequeñas y medianas (rollo chico)';
+    return confirm('Para ' + que + ' sueles usar "' + antes + '", pero ahora está conectada "' +
+                   nombreImpresora + '". ¿Imprimir de todos modos?');
+  }
+  return true;
+}
+function recordarImpresora(tipo) {
+  let m = {};
+  try { m = JSON.parse(localStorage.getItem('d23_imp') || '{}'); } catch (e) {}
+  m[tipo] = nombreImpresora;
+  try { localStorage.setItem('d23_imp', JSON.stringify(m)); } catch (e) {}
+}
+
+function dibujarEtiquetaGrande(it, cuando) {
+  const cv = document.createElement('canvas');
+  cv.width = GW; cv.height = GH;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, GW, GH);
+  ctx.fillStyle = '#000';
+
+  const DER = GW - 14;
+
+  // Logo arriba a la izquierda
+  let izqNombre = 14;
+  if (logoImg) {
+    const caja = 96;
+    const esc = Math.min(caja / logoImg.width, caja / logoImg.height);
+    const lw = Math.round(logoImg.width * esc), lh = Math.round(logoImg.height * esc);
+    ctx.drawImage(logoImg, 10 + Math.round((caja - lw) / 2), 8, lw, lh);
+    izqNombre = 120;
+  }
+
+  // Nombre: hasta 2 lineas, alineado a la derecha, se achica si no cabe
+  const nombre = String(it.n || '').toLocaleUpperCase('es-CL');
+  const r = partirNombre(ctx, nombre, DER - izqNombre, 46, 22);
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'top';
+  ctx.font = '800 ' + r.px + 'px ' + FUENTE;
+  r.lineas.forEach((l, k) => ctx.fillText(l, DER, 10 + Math.round(k * r.px * 1.12)));
+
+  // Precio: crece hasta llenar el ancho segun la cantidad de digitos
+  const precio = '$ ' + fmt(it.p);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  const pxP = ajustarPx(ctx, precio, GW - 40, 150, 40, 800);
+  const trazo = Math.max(3, Math.round(pxP * 0.028));      // engrosa las letras (mas negrita)
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = trazo;
+  ctx.strokeStyle = '#000';
+  ctx.strokeText(precio, GW / 2, 228);
+  ctx.fillText(precio, GW / 2, 228);
+
+  // "cada una" / "N unidades" abajo a la derecha
+  ctx.textAlign = 'right';
+  ctx.font = '700 28px ' + FUENTE;
+  ctx.fillText(unidadesDe(it.n), DER, 268);
+
+  // Fecha y hora de impresion
+  ctx.textAlign = 'left';
+  ctx.font = '700 20px ' + FUENTE;
+  ctx.fillText('Fecha: ' + fechaCorta(cuando), 10, 284);
+  ctx.fillText('Hora: ' + horaCorta(cuando), 10, 308);
+
+  // Codigo de barras + numero (codigo 2), abajo al centro
+  dibujarCodigo(ctx, it.c, 172, 424, 252);
+
+  return cv;
+}
+
+function partirNombre(ctx, texto, ancho, maxPx, minPx, maxL) {
+  maxL = maxL || 2;
+  const palabras = texto.split(/\s+/).filter(Boolean);
+  for (let px = maxPx; px >= minPx; px -= 2) {
+    ctx.font = '800 ' + px + 'px ' + FUENTE;
+    const lineas = envolver(ctx, palabras, ancho);
+    if (lineas.length <= maxL && lineas.every(l => ctx.measureText(l).width <= ancho)) {
+      return { px: px, lineas: lineas };
+    }
+  }
+  ctx.font = '800 ' + minPx + 'px ' + FUENTE;
+  const lineas = envolver(ctx, palabras, ancho);
+  const out = lineas.slice(0, maxL).map(l => recortar(ctx, l, ancho));
+  if (lineas.length > maxL) out[maxL - 1] = recortar(ctx, out[maxL - 1] + '\u2026', ancho);
+  return { px: minPx, lineas: out };
+}
+
+function envolver(ctx, palabras, ancho) {
+  const lineas = [];
+  let actual = '';
+  for (const p of palabras) {
+    const prueba = actual ? actual + ' ' + p : p;
+    if (!actual || ctx.measureText(prueba).width <= ancho) actual = prueba;
+    else { lineas.push(actual); actual = p; }
+  }
+  if (actual) lineas.push(actual);
+  return lineas;
+}
+
+function recortar(ctx, texto, ancho) {
+  if (ctx.measureText(texto).width <= ancho) return texto;
+  let t = texto.replace(/\u2026$/, '');
+  while (t.length > 1 && ctx.measureText(t + '\u2026').width > ancho) t = t.slice(0, -1);
+  return t + '\u2026';
+}
+
+function ajustarPx(ctx, texto, ancho, maxPx, minPx, peso) {
+  let px = maxPx;
+  for (; px > minPx; px -= 2) {
+    ctx.font = peso + ' ' + px + 'px ' + FUENTE;
+    if (ctx.measureText(texto).width <= ancho) break;
+  }
+  ctx.font = peso + ' ' + px + 'px ' + FUENTE;
+  return px;
+}
+
+function canvasCodigo(codigo, anchoMax, alto, fs, mods) {
+  if (!codigo || typeof JsBarcode === 'undefined') return null;
+  let barra = null;
+  for (const mod of mods) {                    // el modulo mas grande que quepa; si ninguno, el mas chico
+    const t = document.createElement('canvas');
+    try {
+      JsBarcode(t, String(codigo), {
+        format: 'CODE128', width: mod, height: alto, margin: 0,
+        displayValue: true, font: FUENTE, fontOptions: 'bold', fontSize: fs, textMargin: 1,
+        background: '#ffffff', lineColor: '#000000'
+      });
+    } catch (e) { return null; }
+    barra = t;
+    if (t.width <= anchoMax) break;
+  }
+  return barra;
+}
+
+function dibujarCodigo(ctx, codigo, zIzq, zDer, y) {
+  const barra = canvasCodigo(codigo, zDer - zIzq, 40, 16, [2, 1]);
+  if (!barra) return;
+  const x = Math.round(zIzq + Math.max(0, ((zDer - zIzq) - barra.width) / 2));
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(barra, x, y);
+  ctx.imageSmoothingEnabled = true;
+}
+
+/* ---------- Conversion a 1 bit ---------- */
+function lum(d, i) {
+  if (d[i + 3] < 128) return 255;             // transparente = blanco
+  return d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
+}
+
+function aBitmap(cv, rotar, invertir, umbral) {
+  let src = cv;
+  if (rotar) {                                 // rollo de 40 mm: la etiqueta sale acostada
+    const r = document.createElement('canvas');
+    r.width = cv.height; r.height = cv.width;
+    const c = r.getContext('2d');
+    c.fillStyle = '#fff';
+    c.fillRect(0, 0, r.width, r.height);
+    c.translate(r.width, 0);
+    c.rotate(Math.PI / 2);
+    c.drawImage(cv, 0, 0);
+    src = r;
+  }
+  const w = src.width, h = src.height, wb = w / 8;
+  const d = src.getContext('2d').getImageData(0, 0, w, h).data;
+  const out = new Uint8Array(wb * h);
+  for (let y = 0; y < h; y++) {
+    for (let xb = 0; xb < wb; xb++) {
+      let byte = 0;
+      for (let b = 0; b < 8; b++) {
+        const negro = lum(d, ((y * w) + xb * 8 + b) * 4) < umbral;
+        // TSPL: bit 0 = punto negro, bit 1 = blanco (invertir por si la impresora es al reves)
+        const bit = invertir ? (negro ? 1 : 0) : (negro ? 0 : 1);
+        byte |= bit << (7 - b);
+      }
+      out[y * wb + xb] = byte;
+    }
+  }
+  return { w: w, h: h, wb: wb, data: out };
+}
+
+/* ---------- Vista previa (ya en blanco y negro) ---------- */
+async function previsualizar(it) {
+  if (!it) return;
+  itemPreview = it;
+  await prepararRecursos();
+  const cv = dibujarVista(it, new Date());
+  const img = cv.getContext('2d').getImageData(0, 0, GW, GH);
+  const d = img.data;
+  const u = num('gUmbral');
+  for (let i = 0; i < d.length; i += 4) {
+    const v = lum(d, i) < u ? 0 : 255;
+    d[i] = d[i + 1] = d[i + 2] = v;
+    d[i + 3] = 255;
+  }
+  document.getElementById('preview').getContext('2d').putImageData(img, 0, 0);
 }
 </script>
 </body>
