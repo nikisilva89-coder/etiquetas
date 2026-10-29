@@ -311,7 +311,7 @@ function cambiarModo(m) {
   document.getElementById('tabC').classList.toggle('on', m === 'c');
   document.getElementById('tabG').classList.toggle('on', m === 'g');
   try { localStorage.setItem('d23_modo', m); } catch (e) {}
-  if (m === 'g') cargarPendientes();
+  if (m === 'g') { cargarPendientes(); pintarVista(); }
 }
 
 /* ---------- BLUETOOTH ---------- */
@@ -918,7 +918,7 @@ function dibujarCelda(it, parte) {
   const precio = '$' + fmt(it.p);
 
   if (parte === 'N') {
-    const r = partirNombre(ctx, nombre, ancho, 40, 16, 4);
+    const r = partirNombre(ctx, nombre, ancho, 40, 14, 4, d.h - pad * 2, 1.12);
     const alto = Math.round(r.lineas.length * r.px * 1.12);
     ctx.textBaseline = 'top';
     ctx.font = '800 ' + r.px + 'px ' + FUENTE;
@@ -939,7 +939,9 @@ function dibujarCelda(it, parte) {
     ctx.fillText(unidadesDe(it.n), d.w - pad, d.h - pad - 2);
 
   } else {                                   // 'P': nombre, codigo de barras, precio y unidades
-    const r = partirNombre(ctx, nombre, ancho, 20, 11, 2);
+    // 2 lineas si cabe; si el nombre es muy largo, 3 lineas mas chicas antes de recortar con "..."
+    let r = partirNombre(ctx, nombre, ancho, 20, 12, 2);
+    if (r.cortado) r = partirNombre(ctx, nombre, ancho, 14, 10, 3);
     ctx.textBaseline = 'top';
     ctx.font = '800 ' + r.px + 'px ' + FUENTE;
     r.lineas.forEach((l, k) => ctx.fillText(l, cx, 3 + Math.round(k * r.px * 1.08)));
@@ -966,27 +968,31 @@ function dibujarCelda(it, parte) {
 
 function partesDe(it) { return it.z === 'M' ? ['N', 'C', 'V'] : ['P']; }
 
-/* Vista previa: la Grande tal cual; Pequeña y Mediana como se pegan (celdas una al lado de otra) */
+/* Vista previa: la Grande tal cual; Pequena y Mediana como se pegan (celdas una al lado de otra).
+   Se arma a tamano real (1 punto de impresora = 1 pixel); la ampliacion nitida la hace previsualizar(). */
 function dibujarVista(it, cuando) {
   if (it.z !== 'P' && it.z !== 'M') return dibujarEtiquetaGrande(it, cuando);
 
   const celdas = partesDe(it).map(pt => dibujarCelda(it, pt));
-  const cw = celdas[0].width, ch = celdas[0].height, sep = 14;
+  const cw = celdas[0].width, ch = celdas[0].height, sep = 14, borde = 12;
   const total = celdas.length * cw + (celdas.length - 1) * sep;
-  const esc = Math.min(2, (GW - 16) / total);
+  const H = ch + borde * 2;
+  const W = Math.max(total + borde * 2, H * 2);   // al menos 2:1, como la Grande
   const cv = document.createElement('canvas');
-  cv.width = GW; cv.height = GH;
+  cv.width = W; cv.height = H;
   const ctx = cv.getContext('2d');
   ctx.fillStyle = '#fff';
-  ctx.fillRect(0, 0, GW, GH);
-  ctx.strokeStyle = '#000';
-  ctx.lineWidth = 1;
-  const x0 = Math.round((GW - total * esc) / 2), y0 = Math.round((GH - ch * esc) / 2);
-  const w = Math.round(cw * esc), h = Math.round(ch * esc);
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#000';
+  const x0 = Math.round((W - total) / 2);
   celdas.forEach((c, k) => {
-    const x = x0 + Math.round(k * (cw + sep) * esc);
-    ctx.drawImage(c, x, y0, w, h);
-    ctx.strokeRect(x + 0.5, y0 + 0.5, w - 1, h - 1);
+    const x = x0 + k * (cw + sep);
+    ctx.drawImage(c, x, borde);
+    // marco de corte, 1 punto por fuera de la celda
+    ctx.fillRect(x - 1, borde - 1, cw + 2, 1);
+    ctx.fillRect(x - 1, borde + ch, cw + 2, 1);
+    ctx.fillRect(x - 1, borde - 1, 1, ch + 2);
+    ctx.fillRect(x + cw, borde - 1, 1, ch + 2);
   });
   return cv;
 }
@@ -1131,13 +1137,16 @@ function dibujarEtiquetaGrande(it, cuando) {
   return cv;
 }
 
-function partirNombre(ctx, texto, ancho, maxPx, minPx, maxL) {
+function partirNombre(ctx, texto, ancho, maxPx, minPx, maxL, maxAlto, interl) {
   maxL = maxL || 2;
+  maxAlto = maxAlto || Infinity;            // alto disponible: el bloque de lineas no puede pasarse
+  interl = interl || 1.12;
   const palabras = texto.split(/\s+/).filter(Boolean);
-  for (let px = maxPx; px >= minPx; px -= 2) {
+  for (let px = maxPx; px >= minPx; px -= 1) {
     ctx.font = '800 ' + px + 'px ' + FUENTE;
     const lineas = envolver(ctx, palabras, ancho);
-    if (lineas.length <= maxL && lineas.every(l => ctx.measureText(l).width <= ancho)) {
+    if (lineas.length <= maxL && lineas.length * px * interl <= maxAlto &&
+        lineas.every(l => ctx.measureText(l).width <= ancho)) {
       return { px: px, lineas: lineas };
     }
   }
@@ -1145,7 +1154,7 @@ function partirNombre(ctx, texto, ancho, maxPx, minPx, maxL) {
   const lineas = envolver(ctx, palabras, ancho);
   const out = lineas.slice(0, maxL).map(l => recortar(ctx, l, ancho));
   if (lineas.length > maxL) out[maxL - 1] = recortar(ctx, out[maxL - 1] + '\u2026', ancho);
-  return { px: minPx, lineas: out };
+  return { px: minPx, lineas: out, cortado: true };
 }
 
 function envolver(ctx, palabras, ancho) {
@@ -1242,12 +1251,15 @@ function aBitmap(cv, rotar, invertir, umbral) {
 }
 
 /* ---------- Vista previa (ya en blanco y negro) ---------- */
+let vistaBN = null;                           // imagen a 1 bit tal como sale impresa
+
 async function previsualizar(it) {
   if (!it) return;
   itemPreview = it;
   await prepararRecursos();
   const cv = dibujarVista(it, new Date());
-  const img = cv.getContext('2d').getImageData(0, 0, GW, GH);
+  const ctx = cv.getContext('2d');
+  const img = ctx.getImageData(0, 0, cv.width, cv.height);
   const d = img.data;
   const u = num('gUmbral');
   for (let i = 0; i < d.length; i += 4) {
@@ -1255,8 +1267,29 @@ async function previsualizar(it) {
     d[i] = d[i + 1] = d[i + 2] = v;
     d[i + 3] = 255;
   }
-  document.getElementById('preview').getContext('2d').putImageData(img, 0, 0);
+  ctx.putImageData(img, 0, 0);
+  vistaBN = cv;
+  pintarVista();
 }
+
+/* Amplia la imagen a la resolucion real de la pantalla sin suavizar:
+   cada punto de la impresora se ve como un cuadrado nitido, sin borrosidad. */
+function pintarVista() {
+  if (!vistaBN) return;
+  const prev = document.getElementById('preview');
+  const dpr = window.devicePixelRatio || 1;
+  const anchoCss = prev.clientWidth || vistaBN.width;
+  const W = Math.max(1, Math.round(anchoCss * dpr));
+  const H = Math.max(1, Math.round(W * vistaBN.height / vistaBN.width));
+  if (prev.width !== W) prev.width = W;
+  if (prev.height !== H) prev.height = H;
+  const ctx = prev.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, W, H);
+  ctx.imageSmoothingEnabled = W < vistaBN.width;   // solo suaviza si hay que achicar (pantallas chicas)
+  ctx.drawImage(vistaBN, 0, 0, W, H);
+}
+window.addEventListener('resize', pintarVista);
 </script>
 </body>
 </html>
