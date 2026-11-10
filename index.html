@@ -24,6 +24,10 @@
   h1{font-size:19px;margin:0;color:var(--azul);letter-spacing:-.2px}
   #estado{font-size:12px;font-weight:600;color:var(--rojo)}
   #estado.on{color:var(--verde)}
+  .der{display:flex;align-items:center;gap:12px}
+  /* Boton recargar: solo se ve cuando la app esta instalada (sin barra de Chrome) */
+  #btnRecargar{display:none;width:auto;padding:6px 12px;font-size:13px;background:var(--azul)}
+  @media (display-mode: standalone){ #btnRecargar{display:inline-block} }
   .card{background:#fff;border-radius:12px;padding:14px;margin-bottom:12px;
         box-shadow:0 1px 3px rgba(0,0,0,.08)}
   input,select{width:100%;padding:12px;font-size:16px;border:1px solid var(--borde);
@@ -79,7 +83,10 @@
 
 <header>
   <h1>Etiquetas D23</h1>
-  <span id="estado">Sin conectar</span>
+  <div class="der">
+    <span id="estado">Sin conectar</span>
+    <button id="btnRecargar" onclick="recargarApp()" title="Carga la ultima version. Despues hay que volver a conectar la impresora.">&#8635; Recargar</button>
+  </div>
 </header>
 
 <div id="login" class="card">
@@ -1294,6 +1301,11 @@ function pintarVista() {
   ctx.drawImage(vistaBN, 0, 0, W, H);
 }
 window.addEventListener('resize', pintarVista);
+
+/* Recarga la app pidiendo la version mas nueva (evita la copia guardada en cache). */
+function recargarApp() {
+  location.replace(location.pathname + '?v=' + Date.now());
+}
 </script>
 </body>
 </html>
